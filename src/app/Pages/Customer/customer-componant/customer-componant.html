@@ -6,13 +6,16 @@
     </h2>
 
     <!-- Success Alert -->
-    <div class="success-alert" *ngIf="successMessage">
-      {{ successMessage }}
+    <div class="alert alert-success" *ngIf="successMessage" role="alert">
+      <span class="alert-icon">✓</span>
+      <span class="alert-message">{{ successMessage }}</span>
     </div>
 
-    <!-- General Error Alert -->
-    <div class="error-alert" *ngIf="generalError">
-      {{ generalError }}
+    <!-- Error Alert -->
+    <div class="alert alert-error" *ngIf="errorMessage" role="alert">
+      <span class="alert-icon">⚠</span>
+      <span class="alert-message">{{ errorMessage }}</span>
+      <button class="alert-close" (click)="errorMessage = null" aria-label="Close alert">×</button>
     </div>
 
     <!-- Loading Overlay -->
@@ -22,7 +25,7 @@
     </div>
 
     <!-- Customer Form -->
-    <form [formGroup]="customerForm" (ngSubmit)="onSubmit()" class="customer-form">
+    <form [formGroup]="customerForm" (ngSubmit)="onSubmit()" class="customer-form" [class.form-disabled]="loading">
       
       <!-- Full Name -->
       <div class="form-group">
@@ -34,7 +37,7 @@
           id="fullName"
           formControlName="fullName"
           class="form-input"
-          [class.error]="hasError('fullName', 'required') || hasError('fullName', 'minlength')"
+          [class.error]="getControl('fullName')?.touched && getControl('fullName')?.errors"
           placeholder="Enter full name"
         />
         <span class="error-message" *ngIf="getControl('fullName')?.touched && getControl('fullName')?.errors">
@@ -52,7 +55,7 @@
           id="nationalID"
           formControlName="nationalID"
           class="form-input"
-          [class.error]="hasError('nationalID', 'required') || hasError('nationalID', 'pattern')"
+          [class.error]="getControl('nationalID')?.touched && getControl('nationalID')?.errors"
           placeholder="14 digit national ID"
           maxlength="14"
         />
@@ -70,7 +73,7 @@
           id="genderId"
           formControlName="genderId"
           class="form-select"
-          [class.error]="hasError('genderId', 'required')"
+          [class.error]="getControl('genderId')?.touched && getControl('genderId')?.errors"
         >
           <option value="">Select gender</option>
           <option *ngFor="let gender of genders" [value]="gender.id">
@@ -91,7 +94,7 @@
           id="governorateId"
           formControlName="governorateId"
           class="form-select"
-          [class.error]="hasError('governorateId', 'required')"
+          [class.error]="getControl('governorateId')?.touched && getControl('governorateId')?.errors"
         >
           <option value="">Select governorate</option>
           <option *ngFor="let governorate of governorates" [value]="governorate.id">
@@ -108,12 +111,11 @@
         <label for="districtId" class="form-label">
           District <span class="required">*</span>
         </label>
-        <!-- ✅ Removed [disabled] binding - controlled programmatically now -->
         <select
           id="districtId"
           formControlName="districtId"
           class="form-select"
-          [class.error]="hasError('districtId', 'required')"
+          [class.error]="getControl('districtId')?.touched && getControl('districtId')?.errors"
         >
           <option value="">Select district</option>
           <option *ngFor="let district of districts" [value]="district.id">
@@ -130,12 +132,11 @@
         <label for="villageId" class="form-label">
           Village <span class="required">*</span>
         </label>
-        <!-- ✅ Removed [disabled] binding - controlled programmatically now -->
         <select
           id="villageId"
           formControlName="villageId"
           class="form-select"
-          [class.error]="hasError('villageId', 'required')"
+          [class.error]="getControl('villageId')?.touched && getControl('villageId')?.errors"
         >
           <option value="">Select village</option>
           <option *ngFor="let village of villages" [value]="village.id">
@@ -157,7 +158,7 @@
           id="birthDate"
           formControlName="birthDate"
           class="form-input"
-          [class.error]="hasError('birthDate', 'required')"
+          [class.error]="getControl('birthDate')?.touched && getControl('birthDate')?.errors"
         />
         <span class="error-message" *ngIf="getControl('birthDate')?.touched && getControl('birthDate')?.errors">
           {{ getErrorMessage('birthDate') }}
@@ -167,14 +168,14 @@
       <!-- Salary -->
       <div class="form-group">
         <label for="salary" class="form-label">
-          Salary
+          Salary <span class="required">*</span>
         </label>
         <input
           type="number"
           id="salary"
           formControlName="salary"
           class="form-input"
-          [class.error]="hasError('salary', 'min')"
+          [class.error]="getControl('salary')?.touched && getControl('salary')?.errors"
           placeholder="Enter salary"
           min="0"
           step="0.01"
@@ -195,6 +196,7 @@
             {{ isEditMode ? 'Update Customer' : 'Create Customer' }}
           </span>
           <span *ngIf="submitting">
+            <span class="btn-spinner"></span>
             Saving...
           </span>
         </button>
