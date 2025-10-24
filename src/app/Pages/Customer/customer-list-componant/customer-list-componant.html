@@ -1,0 +1,261 @@
+<div class="container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-text">
+        <h1 class="header-title">Customer Directory</h1>
+        <p class="header-subtitle">Manage and view all customer information</p>
+      </div>
+      <button
+        class="btn btn-refresh"
+        (click)="refresh()"
+        [disabled]="loading"
+        aria-label="Refresh customer list"
+      >
+        <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Search and Filter Section -->
+  <section class="search-section">
+    <div class="search-wrapper">
+      <label for="search-input" class="sr-only">Search customers</label>
+      <input
+        id="search-input"
+        type="text"
+        class="search-input"
+        placeholder="Search by name, national ID..."
+        [ngModel]="searchTerm"
+        (ngModelChange)="onSearchChange($event)"
+        aria-label="Search customers by name or national ID"
+      />
+    </div>
+    <!-- <div class="select-wrapper">
+      <label for="page-size" class="sr-only">Items per page</label>
+      <select
+        id="page-size"
+        class="select-input"
+        [(ngModel)]="pageSize"
+        (ngModelChange)="onPageSizeChange()"
+        aria-label="Select number of items per page"
+      >
+        <option [value]="10">10 per page</option>
+        <option [value]="20">20 per page</option>
+        <option [value]="50">50 per page</option>
+        <option [value]="100">100 per page</option>
+      </select>
+    </div> -->
+  </section>
+
+  <!-- Results Summary -->
+  <div class="results-summary" *ngIf="!loading && !error" role="status" aria-live="polite">
+    Showing <strong>{{ customers.length }}</strong> of
+    <strong>{{ pagination.totalCount }}</strong> customers
+  </div>
+
+  <!-- Loading State (Initial Load) -->
+  <div class="loading-state" *ngIf="loading && customers.length === 0" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="loading-text">Loading customers...</p>
+  </div>
+
+  <!-- Loading Overlay (For Pagination) -->
+  <div class="loading-overlay" *ngIf="loading && customers.length > 0" role="status" aria-live="polite">
+    <div class="loading-overlay-content">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="loading-text">Loading...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-state" *ngIf="error" role="alert">
+    <div class="error-icon" aria-hidden="true">⚠️</div>
+    <p class="error-message">{{ error }}</p>
+    <button class="btn btn-retry" (click)="refresh()">Try Again</button>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="isEmpty" role="status">
+    <div class="empty-icon" aria-hidden="true">📭</div>
+    <p class="empty-message">No customers found</p>
+    <p class="empty-hint">Try adjusting your search criteria</p>
+  </div>
+
+  <!-- Customers Grid -->
+  <div class="customers-grid" *ngIf="!error && customers.length > 0" [class.loading-active]="loading">
+    <article
+      class="customer-card"
+      *ngFor="let customer of customers; trackBy: trackById"
+      tabindex="0"
+      (keyup.enter)="viewCustomer(customer)"
+      role="group"
+      aria-label="Customer card"
+    >
+      <!-- Card Header -->
+      <div class="card-header">
+        <div class="card-name">{{ customer.fullName }}</div>
+        <div class="card-id">ID: {{ customer.nationalID }}</div>
+      </div>
+
+      <!-- Card Body -->
+      <div class="card-body">
+        <div class="card-row">
+          <span class="card-label">Salary</span>
+          <span class="card-value">{{ formatCurrency(customer.salary) }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Birth Date</span>
+          <span class="card-value">{{ formatDate(customer.birthDate) }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Age</span>
+          <span class="card-value">{{ customer.age }} years</span>
+        </div>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="card-footer">
+        <span
+          class="status-badge"
+          [class.status-active]="customer.isActive"
+          [class.status-inactive]="!customer.isActive"
+        >
+          {{ customer.isActive ? '● Active' : '○ Inactive' }}
+        </span>
+        <span class="card-date">{{ formatDate(customer.createdDate) }}</span>
+
+        <div class="card-actions">
+          <button class="btn btn-view" (click)="viewCustomer(customer)" aria-label="View customer">
+            View
+          </button>
+          <button class="btn btn-edit" (click)="onEdit(customer)" aria-label="Edit customer">
+            Edit
+          </button>
+          <button class="btn btn-delete" (click)="onDelete(customer)" aria-label="Delete customer">
+            Delete
+          </button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <!-- Pagination -->
+  <nav
+    class="pagination-nav"
+    *ngIf="showPagination && !error"
+    aria-label="Customer list pagination"
+  >
+    <div class="pagination-info" role="status" aria-live="polite">
+      <span>
+        Page <strong>{{ pagination.currentPage }}</strong> of
+        <strong>{{ pagination.totalPages }}</strong>
+      </span>
+    </div>
+    <div class="pagination-controls">
+      <button
+        class="btn btn-page"
+        (click)="previousPage()"
+        [disabled]="!pagination.hasPrevious || loading"
+        aria-label="Go to previous page"
+      >
+        <span>Previous</span>
+      </button>
+
+      <div class="page-numbers" role="group" aria-label="Page numbers">
+        <button
+          *ngFor="let page of pageNumbers"
+          class="page-btn"
+          [class.active]="page === pagination.currentPage"
+          (click)="goToPage(page)"
+          [attr.aria-current]="page === pagination.currentPage ? 'page' : null"
+          [disabled]="page === pagination.currentPage || loading"
+        >
+          {{ page }}
+        </button>
+      </div>
+
+      <button
+        class="btn btn-page"
+        (click)="nextPage()"
+        [disabled]="!pagination.hasNext || loading"
+        aria-label="Go to next page"
+      >
+        <span>Next</span>
+      </button>
+    </div>
+  </nav>
+</div>
+
+<!-- Customer Detail Modal -->
+<div
+  class="modal"
+  [class.show]="showModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+>
+  <div class="modal-overlay" (click)="closeModal()" aria-hidden="true"></div>
+  <div class="modal-dialog" role="document">
+    <!-- Modal Loading State -->
+    <div class="modal-loading" *ngIf="loadingModal">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="loading-text">Loading customer details...</p>
+    </div>
+
+    <!-- Modal Content -->
+    <div *ngIf="!loadingModal && selectedCustomer">
+      <div class="modal-header">
+        <h2 id="modal-title" class="modal-title">{{ selectedCustomer.fullName }}</h2>
+        <button class="btn-close" (click)="closeModal()" aria-label="Close customer details modal">
+          &times;
+        </button>
+      </div>
+      <div class="modal-body">
+        <dl class="modal-details">
+          <div class="modal-row">
+            <dt class="modal-label">National ID</dt>
+            <dd class="modal-value">{{ selectedCustomer.nationalID }}</dd>
+          </div>
+          <div class="modal-row">
+            <dt class="modal-label">Salary</dt>
+            <dd class="modal-value">{{ formatCurrency(selectedCustomer.salary) }}</dd>
+          </div>
+          <div class="modal-row">
+            <dt class="modal-label">Birth Date</dt>
+            <dd class="modal-value">{{ formatDate(selectedCustomer.birthDate) }}</dd>
+          </div>
+          <div class="modal-row">
+            <dt class="modal-label">Age</dt>
+            <dd class="modal-value">{{ selectedCustomer.age }} years</dd>
+          </div>
+          <div class="modal-row">
+            <dt class="modal-label">Status</dt>
+            <dd class="modal-value">
+              <span
+                class="status-badge"
+                [class.status-active]="selectedCustomer.isActive"
+                [class.status-inactive]="!selectedCustomer.isActive"
+              >
+                {{ selectedCustomer.isActive ? '● Active' : '○ Inactive' }}
+              </span>
+            </dd>
+          </div>
+          <div class="modal-row">
+            <dt class="modal-label">Created Date</dt>
+            <dd class="modal-value">{{ formatDate(selectedCustomer.createdDate) }}</dd>
+          </div>
+          <div class="modal-row">
+            <dt class="modal-label">Customer ID</dt>
+            <dd class="modal-value">{{ selectedCustomer.id }}</dd>
+          </div>
+        </dl>
+
+        <div class="modal-actions">
+          <button class="btn btn-edit" (click)="onEdit(selectedCustomer)">Edit</button>
+          <button class="btn btn-delete" (click)="onDelete(selectedCustomer)">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

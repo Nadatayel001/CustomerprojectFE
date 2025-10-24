@@ -83,8 +83,8 @@ export class CustomerService {
 
   async updateCustomer(id: string, customerData: CustomerUpdateRequest): Promise<Customer> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/Customer/${id}`, {
-        method: 'PUT',
+      const response = await fetch(`${this.API_BASE_URL}/Customer`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
