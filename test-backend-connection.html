@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Connection Test</title>
+</head>
+<body>
+    <h1>Backend Connection Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const urls = [
+            'https://localhost:5001/api',
+            'http://localhost:5001/api',
+            'https://localhost:5000/api',
+            'http://localhost:5000/api',
+            'https://localhost:3000/api',
+            'http://localhost:3000/api'
+        ];
+
+        const resultsDiv = document.getElementById('results');
+
+        async function testConnection(url) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                return { url, status: 'SUCCESS', statusCode: response.status };
+            } catch (error) {
+                return { url, status: 'FAILED', error: error.message };
+            }
+        }
+
+        async function testAllConnections() {
+            resultsDiv.innerHTML = '<p>Testing connections...</p>';
+
+            for (const url of urls) {
+                const result = await testConnection(url);
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <h3>${result.url}</h3>
+                    <p>Status: <strong style="color: ${result.status === 'SUCCESS' ? 'green' : 'red'}">${result.status}</strong></p>
+                    ${result.statusCode ? `<p>HTTP Code: ${result.statusCode}</p>` : ''}
+                    ${result.error ? `<p>Error: ${result.error}</p>` : ''}
+                    <hr>
+                `;
+                resultsDiv.appendChild(div);
+            }
+        }
+
+        testAllConnections();
+    </script>
+</body>
+</html>
