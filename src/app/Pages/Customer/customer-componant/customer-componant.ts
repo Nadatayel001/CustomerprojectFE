@@ -1,16 +1,28 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { Customer } from '../../../proxy/Customer/Customer.model';
 import { LookupItem } from '../../../proxy/Lookup/Lookup.model';
 import { Subject, takeUntil } from 'rxjs';
 import { CustomerService } from '../../../proxy/Customer/Customer.service';
 import { LookupService } from '../../../proxy/Lookup/Lookup.service';
 
-
+/**
+ * Customer Component with Reactive Forms (Standalone)
+ */
 @Component({
   selector: 'app-customer',
-  templateUrl: './customer.component.html',
-  styleUrls: ['./customer.component.css']
+  standalone: true,  
+  imports: [
+    CommonModule,           
+    ReactiveFormsModule     
+  ],
+  providers: [
+    CustomerService,    
+    LookupService          
+  ],
+  templateUrl: './customer-componant.html',
+  styleUrls: ['./customer-componant.css']
 })
 export class CustomerComponent implements OnInit, OnDestroy {
   @Input() customerId: string | null = null;
@@ -57,9 +69,7 @@ export class CustomerComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  /**
-   * Initialize reactive form
-   */
+
   private initializeForm(): void {
     this.customerForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2)]],
@@ -73,14 +83,16 @@ export class CustomerComponent implements OnInit, OnDestroy {
     });
   }
 
- 
+
   private setupFormListeners(): void {
+    // Listen to governorate changes
     this.customerForm.get('governorateId')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(governorateId => {
         this.onGovernorateChange(governorateId);
       });
 
+    // Listen to district changes
     this.customerForm.get('districtId')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(districtId => {
@@ -90,9 +102,8 @@ export class CustomerComponent implements OnInit, OnDestroy {
 
 
   private async loadInitialData(): Promise<void> {
-    this.loading = true;
+    // this.loading = true;
     try {
-      // Services return Promise directly, no need for toPromise()
       const [genders, governorates] = await Promise.all([
         this.lookupService.getGenders(),
         this.lookupService.getGovernorates()
@@ -116,7 +127,6 @@ export class CustomerComponent implements OnInit, OnDestroy {
 
     this.loading = true;
     try {
-      // Service returns Promise directly, no need for toPromise()
       const customer = await this.customerService.getCustomerById(this.customerId);
 
       if (customer) {
@@ -166,7 +176,6 @@ export class CustomerComponent implements OnInit, OnDestroy {
 
     if (governorateId) {
       try {
-        // Service returns Promise directly, no need for toPromise()
         this.districts = await this.lookupService
           .getDistrictsByGovernorate(governorateId) || [];
       } catch (error) {
@@ -188,7 +197,6 @@ export class CustomerComponent implements OnInit, OnDestroy {
 
     if (districtId) {
       try {
-        // Service returns Promise directly, no need for toPromise()
         this.villages = await this.lookupService
           .getVillagesByDistrict(districtId) || [];
       } catch (error) {
@@ -234,11 +242,9 @@ export class CustomerComponent implements OnInit, OnDestroy {
           ...payload,
           id: this.customerId
         };
-        // Service returns Promise directly, no need for toPromise()
         result = await this.customerService.updateCustomer(this.customerId, updatePayload);
       } else {
         // Create new customer
-        // Service returns Promise directly, no need for toPromise()
         result = await this.customerService.createCustomer(payload);
       }
 
@@ -356,16 +362,12 @@ export class CustomerComponent implements OnInit, OnDestroy {
     return labels[controlName] || controlName;
   }
 
-  /**
-   * Check if district dropdown should be disabled
-   */
+ 
   isDistrictDisabled(): boolean {
     return !this.customerForm.get('governorateId')?.value || this.districts.length === 0;
   }
 
-  /**
-   * Check if village dropdown should be disabled
-   */
+
   isVillageDisabled(): boolean {
     return !this.customerForm.get('districtId')?.value || this.villages.length === 0;
   }
