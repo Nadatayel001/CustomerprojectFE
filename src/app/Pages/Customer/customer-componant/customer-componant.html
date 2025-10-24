@@ -1,0 +1,208 @@
+<div class="customer-container">
+  <div class="customer-form-wrapper">
+    <!-- Header -->
+    <h2 class="form-title">
+      {{ isEditMode ? 'Edit Customer' : 'Create New Customer' }}
+    </h2>
+
+    <!-- General Error Alert -->
+    <div class="error-alert" *ngIf="generalError">
+      {{ generalError }}
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Customer Form -->
+    <form [formGroup]="customerForm" (ngSubmit)="onSubmit()" class="customer-form">
+      
+      <!-- Full Name -->
+      <div class="form-group">
+        <label for="fullName" class="form-label">
+          Full Name <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="fullName"
+          formControlName="fullName"
+          class="form-input"
+          [class.error]="hasError('fullName', 'required') || hasError('fullName', 'minlength')"
+          placeholder="Enter full name"
+        />
+        <span class="error-message" *ngIf="getControl('fullName')?.touched && getControl('fullName')?.errors">
+          {{ getErrorMessage('fullName') }}
+        </span>
+      </div>
+
+      <!-- National ID -->
+      <div class="form-group">
+        <label for="nationalID" class="form-label">
+          National ID <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="nationalID"
+          formControlName="nationalID"
+          class="form-input"
+          [class.error]="hasError('nationalID', 'required') || hasError('nationalID', 'pattern')"
+          placeholder="14 digit national ID"
+          maxlength="14"
+        />
+        <span class="error-message" *ngIf="getControl('nationalID')?.touched && getControl('nationalID')?.errors">
+          {{ getErrorMessage('nationalID') }}
+        </span>
+      </div>
+
+      <!-- Gender -->
+      <div class="form-group">
+        <label for="genderId" class="form-label">
+          Gender <span class="required">*</span>
+        </label>
+        <select
+          id="genderId"
+          formControlName="genderId"
+          class="form-select"
+          [class.error]="hasError('genderId', 'required')"
+        >
+          <option value="">Select gender</option>
+          <option *ngFor="let gender of genders" [value]="gender.id">
+            {{ gender.name }}
+          </option>
+        </select>
+        <span class="error-message" *ngIf="getControl('genderId')?.touched && getControl('genderId')?.errors">
+          {{ getErrorMessage('genderId') }}
+        </span>
+      </div>
+
+      <!-- Governorate -->
+      <div class="form-group">
+        <label for="governorateId" class="form-label">
+          Governorate <span class="required">*</span>
+        </label>
+        <select
+          id="governorateId"
+          formControlName="governorateId"
+          class="form-select"
+          [class.error]="hasError('governorateId', 'required')"
+        >
+          <option value="">Select governorate</option>
+          <option *ngFor="let governorate of governorates" [value]="governorate.id">
+            {{ governorate.name }}
+          </option>
+        </select>
+        <span class="error-message" *ngIf="getControl('governorateId')?.touched && getControl('governorateId')?.errors">
+          {{ getErrorMessage('governorateId') }}
+        </span>
+      </div>
+
+      <!-- District -->
+      <div class="form-group">
+        <label for="districtId" class="form-label">
+          District <span class="required">*</span>
+        </label>
+        <select
+          id="districtId"
+          formControlName="districtId"
+          class="form-select"
+          [class.error]="hasError('districtId', 'required')"
+          [disabled]="isDistrictDisabled()"
+        >
+          <option value="">Select district</option>
+          <option *ngFor="let district of districts" [value]="district.id">
+            {{ district.name }}
+          </option>
+        </select>
+        <span class="error-message" *ngIf="getControl('districtId')?.touched && getControl('districtId')?.errors">
+          {{ getErrorMessage('districtId') }}
+        </span>
+      </div>
+
+      <!-- Village -->
+      <div class="form-group">
+        <label for="villageId" class="form-label">
+          Village <span class="required">*</span>
+        </label>
+        <select
+          id="villageId"
+          formControlName="villageId"
+          class="form-select"
+          [class.error]="hasError('villageId', 'required')"
+          [disabled]="isVillageDisabled()"
+        >
+          <option value="">Select village</option>
+          <option *ngFor="let village of villages" [value]="village.id">
+            {{ village.name }}
+          </option>
+        </select>
+        <span class="error-message" *ngIf="getControl('villageId')?.touched && getControl('villageId')?.errors">
+          {{ getErrorMessage('villageId') }}
+        </span>
+      </div>
+
+      <!-- Birth Date -->
+      <div class="form-group">
+        <label for="birthDate" class="form-label">
+          Birth Date <span class="required">*</span>
+        </label>
+        <input
+          type="date"
+          id="birthDate"
+          formControlName="birthDate"
+          class="form-input"
+          [class.error]="hasError('birthDate', 'required')"
+        />
+        <span class="error-message" *ngIf="getControl('birthDate')?.touched && getControl('birthDate')?.errors">
+          {{ getErrorMessage('birthDate') }}
+        </span>
+      </div>
+
+      <!-- Salary -->
+      <div class="form-group">
+        <label for="salary" class="form-label">
+          Salary
+        </label>
+        <input
+          type="number"
+          id="salary"
+          formControlName="salary"
+          class="form-input"
+          [class.error]="hasError('salary', 'min')"
+          placeholder="Enter salary"
+          min="0"
+          step="0.01"
+        />
+        <span class="error-message" *ngIf="getControl('salary')?.touched && getControl('salary')?.errors">
+          {{ getErrorMessage('salary') }}
+        </span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="submitting || loading"
+        >
+          <span *ngIf="!submitting">
+            {{ isEditMode ? 'Update Customer' : 'Create Customer' }}
+          </span>
+          <span *ngIf="submitting">
+            Saving...
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="onCancel()"
+          [disabled]="submitting || loading"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
