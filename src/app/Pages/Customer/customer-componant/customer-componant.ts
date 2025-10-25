@@ -224,12 +224,14 @@ export class CustomerComponent implements OnInit, OnDestroy {
     const updatePayload = { ...payload, id: this.customerId };
     const result = await this.customerService.updateCustomer(this.customerId, updatePayload);
     if (result) {
+            setTimeout(() => this.router.navigate(['/customer-list']), 2000);
+
       this.showSuccess('Customer updated successfully!');
       this.resetForm();
-this.router.navigate(['/customer-list']).then(success => {
-  debugger
-  console.log('Navigation success?', success);
-});      // this.navigateToList(true);
+// this.router.navigate(['/customer-list']).then(success => {
+//   debugger
+//   console.log('Navigation success?', success);
+// });      // this.navigateToList(true);
     }
   }
 

@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { SignupModel, SignupResult } from '../proxy/auth/signup.model';
 
 @Injectable({
   providedIn: 'root',
