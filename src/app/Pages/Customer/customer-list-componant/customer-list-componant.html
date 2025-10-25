@@ -16,14 +16,9 @@
       >
         <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
       </button>
-
-       <button
-        class="btn btn-refresh"
-        (click)="logout()"
-       
-      >
-       
-      </button>
+           <div *ngIf="checkRole()">
+             <button  class="btn btn-refresh" (click)="downloadPdf()">Export PDF</button>
+           </div>
     </div>
   </header>
 

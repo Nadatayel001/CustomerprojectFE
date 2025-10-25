@@ -203,6 +203,25 @@ return res;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  downloadPdf() {
+    this.customerService.exportToPdf().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Customers_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        console.error('Export failed', err);
+        alert('Failed to export PDF.');
+      }
+    });
+  }
+
   // ================= ACTIONS =================
   async viewCustomer(customer: CustomerDto): Promise<void> {
     this.showModal = true;

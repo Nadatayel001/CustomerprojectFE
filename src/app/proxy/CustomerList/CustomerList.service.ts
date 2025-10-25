@@ -55,6 +55,9 @@ export class CustomerListService {
       .toPromise()
       .then(response => response as CustomerDto);
   }
+ exportToPdf() {
+  return this.http.get(`${this.baseUrl}/export`, { responseType: 'blob' });
+}
 
   /**
    * Delete a customer by ID
