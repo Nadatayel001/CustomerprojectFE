@@ -14,6 +14,14 @@
       >
         <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
       </button>
+
+       <button
+        class="btn btn-refresh"
+        (click)="logout()"
+       
+      >
+       
+      </button>
     </div>
   </header>
 
@@ -129,12 +137,16 @@
           <button class="btn btn-view" (click)="viewCustomer(customer)" aria-label="View customer">
             View
           </button>
-          <button class="btn btn-edit" (click)="onEdit(customer)" aria-label="Edit customer">
+         <div *ngIf="checkRole()">
+           <button class="btn btn-edit" (click)="onEdit(customer)" aria-label="Edit customer">
             Edit
           </button>
+          </div>
+           <div *ngIf="checkRole()">
           <button class="btn btn-delete" (click)="onDelete(customer)" aria-label="Delete customer">
             Delete
           </button>
+          </div>
         </div>
       </div>
     </article>

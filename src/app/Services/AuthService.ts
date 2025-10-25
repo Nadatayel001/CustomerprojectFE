@@ -19,6 +19,7 @@ export class AuthService {
         if (response?.token) {
           localStorage.setItem('token', response.token);
           localStorage.setItem('isLoggedIn', 'true');
+           localStorage.setItem('role', response.roleName); 
         }
       })
     );
@@ -31,11 +32,25 @@ return this.http.post<any>(`${this.baseUrl}/users`, model).pipe(    tap((respons
     })
   );
 }
+isAdmin(): boolean {
+  debugger
+  return localStorage.getItem('role')?.toLowerCase() === 'admin';
+}
+
+isUser(): boolean {
+  return localStorage.getItem('role')?.toLowerCase() === 'user';
+}
+
+getCurrentRole(): string | null {
+  debugger
+  return localStorage.getItem('role');
+}
 
 
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('role');
   }
 
   isAuthenticated(): boolean {
