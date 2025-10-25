@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { CustomerDto, PaginationInfo } from '../../../proxy/CustomerList/CustomerList.model';
 import { CustomerListService } from '../../../proxy/CustomerList/CustomerList.service';
+import { AuthService } from '../../../Services/AuthService';
 
 @Component({
   selector: 'app-customer-list-componant',
@@ -46,12 +47,13 @@ export class CustomerListComponant implements OnInit, OnDestroy {
   @Output() edit = new EventEmitter<CustomerDto>();
   @Output() view = new EventEmitter<CustomerDto>();
 
-  constructor(private customerService: CustomerListService) {}
+  constructor(private customerService: CustomerListService, private authService :AuthService) {}
 
   // ================= LIFECYCLE =================
   ngOnInit(): void {
     this.setupSearchDebounce();
-    this.loadCustomers(true); // Reset data on initial load
+    this.loadCustomers(true); // Reset data on initial load\
+    this.checkRole();
   }
 
   ngOnDestroy(): void {
@@ -119,7 +121,12 @@ export class CustomerListComponant implements OnInit, OnDestroy {
   refresh(): void {
     this.loadCustomers(true); // Reset data on refresh
   }
-
+//check role 
+checkRole() : boolean{
+var res= this.authService.isAdmin();
+console.log("the role is:",res)
+return res;
+}
   // ================= PAGINATION =================
   updatePagination(totalCount: number, skip: number): void {
     this.pagination = this.customerService.calculatePagination(
@@ -129,7 +136,9 @@ export class CustomerListComponant implements OnInit, OnDestroy {
     );
     this.calculatePageNumbers();
   }
-
+ logout() {
+    this.authService.logout();
+  }
   calculatePageNumbers(): void {
     const maxPages = 5;
     this.pageNumbers = [];
