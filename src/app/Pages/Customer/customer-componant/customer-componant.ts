@@ -39,18 +39,16 @@ export class CustomerComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.route.params
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
-        this.customerId = params['id'] || null;
-        this.isEditMode = !!this.customerId;
-        this.initializeForm();
-        this.setupFormListeners();
-        this.loadInitialData();
-        if (this.customerId) {
-          this.loadCustomerData();
-        }
-      });
+    this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      this.customerId = params['id'] || null;
+      this.isEditMode = !!this.customerId;
+      this.initializeForm();
+      this.setupFormListeners();
+      this.loadInitialData();
+      if (this.customerId) {
+        this.loadCustomerData();
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -127,50 +125,38 @@ export class CustomerComponent implements OnInit, OnDestroy {
   private async loadDependentData(customer: Customer): Promise<void> {
     if (customer.governorateId) {
       this.districts = await this.lookupService.getDistrictsByGovernorate(customer.governorateId) || [];
-      if (this.districts.length > 0) {
-        this.customerForm.get('districtId')?.enable();
-      }
+      if (this.districts.length > 0) this.customerForm.get('districtId')?.enable();
     }
     if (customer.districtId) {
       this.villages = await this.lookupService.getVillagesByDistrict(customer.districtId) || [];
-      if (this.villages.length > 0) {
-        this.customerForm.get('villageId')?.enable();
-      }
+      if (this.villages.length > 0) this.customerForm.get('villageId')?.enable();
     }
   }
 
   private async onGovernorateChange(governorateId: string): Promise<void> {
     const districtControl = this.customerForm.get('districtId');
     const villageControl = this.customerForm.get('villageId');
-    districtControl?.disable();
-    districtControl?.setValue('');
-    villageControl?.disable();
-    villageControl?.setValue('');
-    this.districts = [];
-    this.villages = [];
+    districtControl?.disable(); districtControl?.setValue('');
+    villageControl?.disable(); villageControl?.setValue('');
+    this.districts = []; this.villages = [];
     if (!governorateId) return;
     try {
       this.districts = await this.lookupService.getDistrictsByGovernorate(governorateId) || [];
-      if (this.districts.length > 0) {
-        districtControl?.enable();
-      }
-    } catch (error) {
+      if (this.districts.length > 0) districtControl?.enable();
+    } catch {
       this.showError('Failed to load districts');
     }
   }
 
   private async onDistrictChange(districtId: string): Promise<void> {
     const villageControl = this.customerForm.get('villageId');
-    villageControl?.disable();
-    villageControl?.setValue('');
+    villageControl?.disable(); villageControl?.setValue('');
     this.villages = [];
     if (!districtId) return;
     try {
       this.villages = await this.lookupService.getVillagesByDistrict(districtId) || [];
-      if (this.villages.length > 0) {
-        villageControl?.enable();
-      }
-    } catch (error) {
+      if (this.villages.length > 0) villageControl?.enable();
+    } catch {
       this.showError('Failed to load villages');
     }
   }
@@ -182,6 +168,7 @@ export class CustomerComponent implements OnInit, OnDestroy {
       return;
     }
     this.clearMessages();
+    this.submitting = true;
     try {
       const formValue = this.customerForm.getRawValue();
       const payload = {
@@ -210,12 +197,7 @@ export class CustomerComponent implements OnInit, OnDestroy {
     const result = await this.customerService.createCustomer(payload);
     if (result) {
       this.showSuccess('Customer created successfully!');
-      this.resetForm();
-      this.router.navigate(['/customer-list']).then(success => {
-  debugger
-  console.log('Navigation success?', success);
-}); 
-      // this.navigateToList(true);
+      setTimeout(() => this.router.navigate(['/Customer-list']), 1500);
     }
   }
 
@@ -224,58 +206,20 @@ export class CustomerComponent implements OnInit, OnDestroy {
     const updatePayload = { ...payload, id: this.customerId };
     const result = await this.customerService.updateCustomer(this.customerId, updatePayload);
     if (result) {
-            setTimeout(() => this.router.navigate(['/customer-list']), 2000);
-
       this.showSuccess('Customer updated successfully!');
-      this.resetForm();
-// this.router.navigate(['/customer-list']).then(success => {
-//   debugger
-//   console.log('Navigation success?', success);
-// });      // this.navigateToList(true);
+      setTimeout(() => this.router.navigate(['/Customer-list']), 1500);
     }
-  }
-
-  private resetForm(): void {
-    this.customerForm.reset({
-      fullName: '',
-      nationalID: '',
-      genderId: '',
-      governorateId: '',
-      districtId: '',
-      villageId: '',
-      birthDate: '',
-      salary: 0
-    });
-    this.districts = [];
-    this.villages = [];
-    this.customerForm.get('districtId')?.disable();
-    this.customerForm.get('villageId')?.disable();
-    this.clearMessages();
-    this.customerForm.markAsPristine();
-    this.customerForm.markAsUntouched();
-    this.customerForm.updateValueAndValidity();
   }
 
   onCancel(): void {
-    this.navigateToList();
-  }
-
-  private navigateToList(immediate = false): void {
-    const go = () => this.router.navigate(['/customer-list'], { replaceUrl: true });
-    if (immediate) {
-      go();
-    } else {
-      setTimeout(go, 1500);
-    }
+    this.router.navigate(['/customer-list']);
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
       control?.markAsTouched();
-      if (control instanceof FormGroup) {
-        this.markFormGroupTouched(control);
-      }
+      if (control instanceof FormGroup) this.markFormGroupTouched(control);
     });
   }
 
@@ -290,22 +234,12 @@ export class CustomerComponent implements OnInit, OnDestroy {
 
   getErrorMessage(controlName: string): string {
     const control = this.getControl(controlName);
-    if (!control?.touched || !control?.errors) {
-      return '';
-    }
+    if (!control?.touched || !control?.errors) return '';
     const errors = control.errors;
-    if (errors['required']) {
-      return `${this.getFieldLabel(controlName)} is required`;
-    }
-    if (errors['minlength']) {
-      return `${this.getFieldLabel(controlName)} must be at least ${errors['minlength'].requiredLength} characters`;
-    }
-    if (errors['pattern'] && controlName === 'nationalID') {
-      return 'National ID must be exactly 14 digits';
-    }
-    if (errors['min']) {
-      return `${this.getFieldLabel(controlName)} must be at least ${errors['min'].min}`;
-    }
+    if (errors['required']) return `${this.getFieldLabel(controlName)} is required`;
+    if (errors['minlength']) return `${this.getFieldLabel(controlName)} must be at least ${errors['minlength'].requiredLength} characters`;
+    if (errors['pattern'] && controlName === 'nationalID') return 'National ID must be exactly 14 digits';
+    if (errors['min']) return `${this.getFieldLabel(controlName)} must be at least ${errors['min'].min}`;
     return `Invalid ${this.getFieldLabel(controlName).toLowerCase()}`;
   }
 
@@ -331,9 +265,7 @@ export class CustomerComponent implements OnInit, OnDestroy {
   private showError(message: string): void {
     this.errorMessage = message;
     this.successMessage = null;
-    setTimeout(() => {
-      this.errorMessage = null;
-    }, 5000);
+    setTimeout(() => { this.errorMessage = null; }, 5000);
   }
 
   private clearMessages(): void {

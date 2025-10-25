@@ -59,7 +59,8 @@ export class CustomerService {
 
   async createCustomer(customerData: CustomerCreateRequest): Promise<Customer> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/Customer`, {
+      debugger
+      const response = await fetch(`${this.API_BASE_URL}/customer/createOrUpdate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -83,7 +84,7 @@ export class CustomerService {
 
   async updateCustomer(id: string, customerData: CustomerUpdateRequest): Promise<Customer> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/Customer`, {
+      const response = await fetch(`${this.API_BASE_URL}/customer/createOrUpdate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

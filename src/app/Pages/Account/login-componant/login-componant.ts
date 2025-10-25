@@ -80,7 +80,7 @@ export class LoginComponant {
 
           this.successMessage = 'Login successful! Redirecting to customer list...';
 
-          // Redirect to customer list after brief delay (optional)
+          // Redirect to customer list 
           setTimeout(() => {
             this.router.navigate(['/Customer-list']);
           }, 1000);
