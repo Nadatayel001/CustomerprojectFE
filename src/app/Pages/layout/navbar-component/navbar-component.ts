@@ -1,46 +1,49 @@
-import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
-import { NavigationEnd, Router, RouterModule } from "@angular/router";
-import { filter } from "rxjs";
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
+import { filter, Subject, takeUntil } from 'rxjs';
+import { AuthService } from '../../../Services/AuthService';
 
 interface NavItem {
   label: string;
   path: string;
   icon: string;
-  requiresAuth?: boolean;
+  roles?: string[]; // Allowed roles: 'admin', 'user', or empty for all
 }
 
 @Component({
   selector: 'app-navbar-component',
+  standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './navbar-component.html',
-  styleUrl: './navbar-component.css',
+  styleUrls: ['./navbar-component.css']
 })
-
-
-export class NavbarComponent implements OnInit{
- isMenuOpen = false;
+export class NavbarComponent implements OnInit, OnDestroy {
+  isMenuOpen = false;
   currentRoute = '';
-  isAuthenticated = false; // TODO: Connect to your auth service
+  isAuthenticated = false;
+  currentUserRole: string | null = null;
+  
+  private destroy$ = new Subject<void>();
 
   navItems: NavItem[] = [
     {
       label: 'Home',
       path: '/',
       icon: '🏠',
-      requiresAuth: false
+      roles: [] // Available to all
     },
     {
       label: 'Customers',
       path: '/customer-list',
       icon: '👥',
-      requiresAuth: false
+      roles: ['admin', 'user'] // Available to both admin and user
     },
     {
       label: 'Add Customer',
       path: '/customer',
       icon: '➕',
-      requiresAuth: false
+      roles: ['admin'] // Only admin can create
     }
   ];
 
@@ -49,32 +52,46 @@ export class NavbarComponent implements OnInit{
       label: 'Login',
       path: '/login',
       icon: '🔐',
-      requiresAuth: false
+      roles: []
     },
     {
       label: 'Sign Up',
       path: '/signup',
       icon: '📝',
-      requiresAuth: false
+      roles: []
     }
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
-    debugger
+    // Initialize auth state
+    this.updateAuthState();
+
     // Track current route
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
+      .pipe(
+        filter(event => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
       .subscribe((event: any) => {
         this.currentRoute = event.url;
-        this.isMenuOpen = false; // Close menu on navigation
+        this.isMenuOpen = false;
+        this.updateAuthState(); // Update auth state on route change
       });
+  }
 
-    // TODO: Subscribe to auth state changes
-    // this.authService.isAuthenticated$.subscribe(
-    //   isAuth => this.isAuthenticated = isAuth
-    // );
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private updateAuthState(): void {
+    this.isAuthenticated = this.authService.isAuthenticated();
+    this.currentUserRole = this.authService.getCurrentRole();
   }
 
   toggleMenu(): void {
@@ -93,18 +110,57 @@ export class NavbarComponent implements OnInit{
   }
 
   logout(): void {
-    // TODO: Implement logout logic
-    // this.authService.logout();
+    this.authService.logout();
+    this.updateAuthState();
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Check if current user has permission to see this nav item
+   */
+  canAccessItem(item: NavItem): boolean {
+    // If no roles specified, item is available to all
+    if (!item.roles || item.roles.length === 0) {
+      return true;
+    }
+
+    // If not authenticated and item requires roles, hide it
+    if (!this.isAuthenticated) {
+      return false;
+    }
+
+    // Check if user's role is in the allowed roles list
+    const userRole = this.currentUserRole?.toLowerCase();
+    return item.roles.some(role => role.toLowerCase() === userRole);
+  }
+
   get visibleNavItems(): NavItem[] {
-    return this.navItems.filter(item => 
-      !item.requiresAuth || this.isAuthenticated
-    );
+    return this.navItems.filter(item => {
+      // Only show nav items if authenticated
+      if (!this.isAuthenticated) {
+        return false;
+      }
+      
+      return this.canAccessItem(item);
+    });
   }
 
   get visibleAuthItems(): NavItem[] {
+    // Only show login/signup when not authenticated
     return this.isAuthenticated ? [] : this.authItems;
+  }
+
+  get userDisplayName(): string {
+     return this.authService.UserName()
+    
+    
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  get isUser(): boolean {
+    return this.authService.isUser();
   }
 }

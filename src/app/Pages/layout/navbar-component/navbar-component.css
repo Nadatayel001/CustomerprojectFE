@@ -154,6 +154,22 @@
   color: #991b1b;
 }
 
+/* ====== USER INFO ====== */
+.user-info .nav-link {
+  pointer-events: none;
+  cursor: default;
+}
+
+.user-badge {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.user-role {
+  font-weight: 600;
+}
+
 /* ====== BACKDROP ====== */
 .navbar-backdrop {
   display: none;

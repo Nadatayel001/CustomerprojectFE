@@ -39,7 +39,9 @@ isAdmin(): boolean {
 isUser(): boolean {
   return localStorage.getItem('role')?.toLowerCase() === 'user';
 }
-
+UserName(): string {
+  return localStorage.getItem('username')||'user';
+}
 getCurrentRole(): string | null {
   debugger
   return localStorage.getItem('role');

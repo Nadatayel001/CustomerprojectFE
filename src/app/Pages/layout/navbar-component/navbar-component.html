@@ -14,6 +14,7 @@
       (click)="toggleMenu()"
       [class.active]="isMenuOpen"
       aria-label="Toggle navigation menu"
+      *ngIf="isAuthenticated"
     >
       <span class="hamburger-line"></span>
       <span class="hamburger-line"></span>
@@ -22,8 +23,8 @@
 
     <!-- Navigation Links -->
     <div class="navbar-menu" [class.active]="isMenuOpen">
-      <!-- Main Navigation -->
-      <ul class="nav-list">
+      <!-- Main Navigation (Only when authenticated) -->
+      <ul class="nav-list" *ngIf="isAuthenticated && visibleNavItems.length > 0">
         <li class="nav-item" *ngFor="let item of visibleNavItems">
           <a 
             [routerLink]="item.path" 
@@ -39,7 +40,7 @@
 
       <!-- Auth Navigation -->
       <ul class="nav-auth">
-        <!-- When not authenticated -->
+        <!-- When not authenticated - Show Login/Signup -->
         <li class="nav-item" *ngFor="let item of visibleAuthItems">
           <a 
             [routerLink]="item.path" 
@@ -52,13 +53,23 @@
           </a>
         </li>
 
-        <!-- When authenticated -->
-        <li class="nav-item" *ngIf="isAuthenticated">
-          <button class="nav-link logout-btn" (click)="logout()">
-            <span class="nav-icon">🚪</span>
-            <span class="nav-label">Logout</span>
-          </button>
-        </li>
+        <!-- When authenticated - Show User Info and Logout -->
+        <ng-container *ngIf="isAuthenticated">
+          <li class="nav-item user-info">
+            <div class="nav-link user-badge">
+              <span class="nav-icon">👤</span>
+              <span class="nav-label">
+                <span class="user-role">{{ userDisplayName }}</span>
+              </span>
+            </div>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link logout-btn" (click)="logout()">
+              <span class="nav-icon">🚪</span>
+              <span class="nav-label">Logout</span>
+            </button>
+          </li>
+        </ng-container>
       </ul>
     </div>
   </div>
