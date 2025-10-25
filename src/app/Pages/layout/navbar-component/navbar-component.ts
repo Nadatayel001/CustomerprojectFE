@@ -35,13 +35,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
     },
     {
       label: 'Customers',
-      path: '/customer-list',
+      path: '/Customer-list',
       icon: '👥',
       roles: ['admin', 'user'] // Available to both admin and user
     },
     {
       label: 'Add Customer',
-      path: '/customer',
+      path: '/Customer',
       icon: '➕',
       roles: ['admin'] // Only admin can create
     }

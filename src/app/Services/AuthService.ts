@@ -32,7 +32,6 @@ return this.http.post<any>(`${this.baseUrl}/users`, model).pipe(    tap((respons
   );
 }
 isAdmin(): boolean {
-  debugger
   return localStorage.getItem('role')?.toLowerCase() === 'admin';
 }
 

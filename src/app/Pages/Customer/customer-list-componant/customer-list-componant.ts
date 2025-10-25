@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil, filter } from 'rxjs';
 import { CustomerDto, PaginationInfo } from '../../../proxy/CustomerList/CustomerList.model';
 import { CustomerListService } from '../../../proxy/CustomerList/CustomerList.service';
 import { AuthService } from '../../../Services/AuthService';
@@ -14,14 +15,11 @@ import { AuthService } from '../../../Services/AuthService';
   styleUrls: ['./customer-list-componant.css'],
 })
 export class CustomerListComponant implements OnInit, OnDestroy {
-  // State
   customers: CustomerDto[] = [];
-  loading = false;
   error: string | null = null;
   searchTerm = '';
   pageSize = 6;
 
-  // Pagination
   pagination: PaginationInfo = {
     currentPage: 1,
     totalPages: 1,
@@ -31,29 +29,24 @@ export class CustomerListComponant implements OnInit, OnDestroy {
     hasPrevious: false,
   };
 
-  // Modal
   selectedCustomer: CustomerDto | null = null;
   showModal = false;
-  loadingModal = false;
 
-  // Page numbers for pagination
   pageNumbers: number[] = [];
 
-  // Search subject for debouncing
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
-  // Optional outputs
-  @Output() edit = new EventEmitter<CustomerDto>();
-  @Output() view = new EventEmitter<CustomerDto>();
+  constructor(
+    private customerService: CustomerListService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
-  constructor(private customerService: CustomerListService, private authService :AuthService) {}
-
-  // ================= LIFECYCLE =================
   ngOnInit(): void {
     this.setupSearchDebounce();
-    this.loadCustomers(true); // Reset data on initial load\
-    this.checkRole();
+    this.setupRouterListener();
+    this.loadCustomers();
   }
 
   ngOnDestroy(): void {
@@ -68,18 +61,28 @@ export class CustomerListComponant implements OnInit, OnDestroy {
     }
   }
 
-  // ================= SEARCH =================
+  setupRouterListener(): void {
+    this.router.events
+      .pipe(
+        filter(event => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.loadCustomers();
+      });
+  }
+
   setupSearchDebounce(): void {
     this.searchSubject
       .pipe(
-        debounceTime(500),
+        debounceTime(300),
         distinctUntilChanged(),
         takeUntil(this.destroy$)
       )
       .subscribe((term) => {
         this.searchTerm = term;
         this.pagination.currentPage = 1;
-        this.loadCustomers(true); // Reset data when searching
+        this.loadCustomers();
       });
   }
 
@@ -87,47 +90,59 @@ export class CustomerListComponant implements OnInit, OnDestroy {
     this.searchSubject.next(value ?? '');
   }
 
-  // ================= DATA LOADING =================
-  async loadCustomers(resetData: boolean = false): Promise<void> {
-    debugger;
-    // Reset data only on initial load or search/filter changes
-    if (resetData) {
-      this.customers = [];
-    }
-
-    // this.loading = true;
+  loadCustomers(): void {
     this.error = null;
-
     const skip = (this.pagination.currentPage - 1) * this.pagination.pageSize;
 
-    try {
-      const response = await this.customerService.getCustomers({
-        skip,
-        take: this.pagination.pageSize,
-        search: this.searchTerm,
-      });
-
-      this.customers = response.items ?? [];
+    this.customerService.getCustomers({
+      skip,
+      take: this.pagination.pageSize,
+      search: this.searchTerm,
+    }).then(response => {
+      this.customers = response.items || [];
       this.updatePagination(response.totalCount ?? 0, skip);
-    } catch (err) {
-      console.error('Error loading customers:', err);
+    }).catch(() => {
       this.error = 'Failed to load customers. Please try again.';
       this.customers = [];
-    } finally {
-      this.loading = false;
-    }
+      this.pagination = {
+        currentPage: 1,
+        totalPages: 1,
+        pageSize: this.pageSize,
+        totalCount: 0,
+        hasNext: false,
+        hasPrevious: false,
+      };
+    });
   }
 
   refresh(): void {
-    this.loadCustomers(true); // Reset data on refresh
+    this.searchTerm = '';
+    this.pagination.currentPage = 1;
+    this.loadCustomers();
   }
-//check role 
-checkRole() : boolean{
-var res= this.authService.isAdmin();
-console.log("the role is:",res)
-return res;
-}
-  // ================= PAGINATION =================
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  downloadPdf(): void {
+    this.customerService.exportToPdf().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Customers_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.error = 'Failed to export PDF. Please try again.';
+      }
+    });
+  }
+
   updatePagination(totalCount: number, skip: number): void {
     this.pagination = this.customerService.calculatePagination(
       totalCount,
@@ -136,9 +151,7 @@ return res;
     );
     this.calculatePageNumbers();
   }
- logout() {
-    this.authService.logout();
-  }
+
   calculatePageNumbers(): void {
     const maxPages = 5;
     this.pageNumbers = [];
@@ -172,7 +185,7 @@ return res;
   goToPage(page: number): void {
     if (page >= 1 && page <= this.pagination.totalPages && page !== this.pagination.currentPage) {
       this.pagination.currentPage = page;
-      this.loadCustomers(false); // Keep data visible during pagination
+      this.loadCustomers();
       this.scrollToTop();
     }
   }
@@ -180,7 +193,7 @@ return res;
   previousPage(): void {
     if (this.pagination.hasPrevious) {
       this.pagination.currentPage--;
-      this.loadCustomers(false); // Keep data visible during pagination
+      this.loadCustomers();
       this.scrollToTop();
     }
   }
@@ -188,7 +201,7 @@ return res;
   nextPage(): void {
     if (this.pagination.hasNext) {
       this.pagination.currentPage++;
-      this.loadCustomers(false); // Keep data visible during pagination
+      this.loadCustomers();
       this.scrollToTop();
     }
   }
@@ -196,60 +209,36 @@ return res;
   onPageSizeChange(): void {
     this.pagination.pageSize = this.pageSize;
     this.pagination.currentPage = 1;
-    this.loadCustomers(true); // Reset data when changing page size
+    this.loadCustomers();
   }
 
   private scrollToTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  downloadPdf() {
-    this.customerService.exportToPdf().subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Customers_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      },
-      error: (err) => {
-        console.error('Export failed', err);
-        alert('Failed to export PDF.');
-      }
-    });
-  }
-
-  // ================= ACTIONS =================
-  async viewCustomer(customer: CustomerDto): Promise<void> {
+  viewCustomer(customer: CustomerDto): void {
     this.showModal = true;
-    // this.loadingModal = true;
     this.selectedCustomer = null;
     document.body.style.overflow = 'hidden';
 
-    try {
-      // Fetch full customer details by ID
-      const fullCustomer = await this.customerService.getCustomerById(customer.id);
-      this.selectedCustomer = fullCustomer;
-      this.view.emit(fullCustomer);
-    } catch (err) {
-      console.error('Error loading customer details:', err);
-      this.error = 'Failed to load customer details. Please try again.';
-      this.closeModal();
-    } finally {
-      this.loadingModal = false;
-    }
+    this.customerService.getCustomerById(customer.id)
+      .then(fullCustomer => {
+        this.selectedCustomer = fullCustomer;
+      })
+      .catch(() => {
+        this.error = 'Failed to load customer details. Please try again.';
+        this.closeModal();
+      });
   }
 
   onEdit(customer: CustomerDto): void {
-    this.edit.emit(customer);
-    // Alternative: navigate to edit page
-    // this.router.navigate(['/customers', 'edit', customer.id]);
+    if (this.showModal) {
+      this.closeModal();
+    }
+    this.router.navigate(['/Customer', customer.id]);
   }
 
-  async onDelete(customer: CustomerDto): Promise<void> {
+  onDelete(customer: CustomerDto): void {
     const confirmMessage = `Are you sure you want to delete customer "${customer.fullName}"?\n\nThis action cannot be undone.`;
     const confirmed = confirm(confirmMessage);
     
@@ -257,47 +246,32 @@ return res;
       return;
     }
 
-    // this.loading = true;
     this.error = null;
 
-    try {
-      // Call delete API
-      await this.customerService.deleteCustomer(customer.id);
+    this.customerService.deleteCustomer(customer.id)
+      .then(() => {
+        if (this.showModal && this.selectedCustomer?.id === customer.id) {
+          this.closeModal();
+        }
 
-      // Close modal if customer was being viewed
-      if (this.showModal && this.selectedCustomer?.id === customer.id) {
-        this.closeModal();
-      }
+        const itemsOnCurrentPage = this.customers.length;
+        if (itemsOnCurrentPage === 1 && this.pagination.currentPage > 1) {
+          this.pagination.currentPage--;
+        }
 
-      // If current page becomes empty after deletion, go to previous page
-      const itemsOnCurrentPage = this.customers.length;
-      if (itemsOnCurrentPage === 1 && this.pagination.currentPage > 1) {
-        this.pagination.currentPage--;
-      }
-
-      // Reload customers - don't reset data to show loading overlay
-      await this.loadCustomers(false);
-    } catch (err) {
-      console.error('Delete failed:', err);
-      this.error = 'Failed to delete customer. Please try again.';
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  // ================= MODAL =================
-  openCustomerModal(customer: CustomerDto): void {
-    this.viewCustomer(customer);
+        this.loadCustomers();
+      })
+      .catch(() => {
+        this.error = 'Failed to delete customer. Please try again.';
+      });
   }
 
   closeModal(): void {
     this.showModal = false;
     this.selectedCustomer = null;
-    this.loadingModal = false;
     document.body.style.overflow = '';
   }
 
-  // ================= UTILITIES =================
   formatDate(dateString: string): string {
     return this.customerService.formatDate(dateString);
   }
@@ -307,7 +281,7 @@ return res;
   }
 
   get isEmpty(): boolean {
-    return this.customers.length === 0  && !this.error;
+    return this.customers.length === 0 && !this.error;
   }
 
   get showPagination(): boolean {

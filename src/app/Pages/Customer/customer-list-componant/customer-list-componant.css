@@ -29,6 +29,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .header-title {
@@ -43,7 +51,8 @@
   margin: 0.25rem 0 0 0;
 }
 
-.btn-refresh {
+.btn-refresh,
+.btn-export {
   background: #2f855a;
   color: #fff;
   border: none;
@@ -52,13 +61,16 @@
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   font-weight: 500;
+  font-size: 0.9rem;
 }
 
-.btn-refresh:hover:not(:disabled) {
+.btn-refresh:hover:not(:disabled),
+.btn-export:hover:not(:disabled) {
   background: #276749;
 }
 
-.btn-refresh:disabled {
+.btn-refresh:disabled,
+.btn-export:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

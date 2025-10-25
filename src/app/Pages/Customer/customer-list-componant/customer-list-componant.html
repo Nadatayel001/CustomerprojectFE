@@ -1,5 +1,3 @@
-
-
 <div class="container">
   <!-- Header -->
   <header class="header">
@@ -8,21 +6,29 @@
         <h1 class="header-title">Customer Directory</h1>
         <p class="header-subtitle">Manage and view all customer information</p>
       </div>
-      <button
-        class="btn btn-refresh"
-        (click)="refresh()"
-        [disabled]="loading"
-        aria-label="Refresh customer list"
-      >
-        <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
-      </button>
-           <div *ngIf="checkRole()">
-             <button  class="btn btn-refresh" (click)="downloadPdf()">Export PDF</button>
-           </div>
+      
+      <div class="header-actions">
+        <button
+          class="btn btn-refresh"
+          (click)="refresh()"
+          aria-label="Refresh customer list"
+        >
+          <span>Refresh</span>
+        </button>
+        
+        <button 
+          *ngIf="isAdmin"
+          class="btn btn-export" 
+          (click)="downloadPdf()"
+          aria-label="Export to PDF"
+        >
+          <span>📄 Export PDF</span>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- Search and Filter Section -->
+  <!-- Search Section -->
   <section class="search-section">
     <div class="search-wrapper">
       <label for="search-input" class="sr-only">Search customers</label>
@@ -36,45 +42,16 @@
         aria-label="Search customers by name or national ID"
       />
     </div>
-    <!-- <div class="select-wrapper">
-      <label for="page-size" class="sr-only">Items per page</label>
-      <select
-        id="page-size"
-        class="select-input"
-        [(ngModel)]="pageSize"
-        (ngModelChange)="onPageSizeChange()"
-        aria-label="Select number of items per page"
-      >
-        <option [value]="10">10 per page</option>
-        <option [value]="20">20 per page</option>
-        <option [value]="50">50 per page</option>
-        <option [value]="100">100 per page</option>
-      </select>
-    </div> -->
   </section>
 
   <!-- Results Summary -->
-  <div class="results-summary" *ngIf="!loading && !error" role="status" aria-live="polite">
+  <div class="results-summary" *ngIf="customers.length > 0 && !error" role="status" aria-live="polite">
     Showing <strong>{{ customers.length }}</strong> of
     <strong>{{ pagination.totalCount }}</strong> customers
   </div>
 
-  <!-- Loading State (Initial Load) -->
-  <div class="loading-state" *ngIf="loading && customers.length === 0" role="status" aria-live="polite">
-    <div class="spinner" aria-hidden="true"></div>
-    <p class="loading-text">Loading customers...</p>
-  </div>
-
-  <!-- Loading Overlay (For Pagination) -->
-  <div class="loading-overlay" *ngIf="loading && customers.length > 0" role="status" aria-live="polite">
-    <div class="loading-overlay-content">
-      <div class="spinner" aria-hidden="true"></div>
-      <p class="loading-text">Loading...</p>
-    </div>
-  </div>
-
   <!-- Error State -->
-  <div class="error-state" *ngIf="error" role="alert">
+  <div class="error-state" *ngIf="error && customers.length === 0" role="alert">
     <div class="error-icon" aria-hidden="true">⚠️</div>
     <p class="error-message">{{ error }}</p>
     <button class="btn btn-retry" (click)="refresh()">Try Again</button>
@@ -88,7 +65,7 @@
   </div>
 
   <!-- Customers Grid -->
-  <div class="customers-grid" *ngIf="!error && customers.length > 0" [class.loading-active]="loading">
+  <div class="customers-grid" *ngIf="customers.length > 0">
     <article
       class="customer-card"
       *ngFor="let customer of customers; trackBy: trackById"
@@ -131,19 +108,31 @@
         <span class="card-date">{{ formatDate(customer.createdDate) }}</span>
 
         <div class="card-actions">
-          <button class="btn btn-view" (click)="viewCustomer(customer)" aria-label="View customer">
+          <button 
+            class="btn btn-view" 
+            (click)="viewCustomer(customer)" 
+            aria-label="View customer details"
+          >
             View
           </button>
-         <div *ngIf="checkRole()">
-           <button class="btn btn-edit" (click)="onEdit(customer)" aria-label="Edit customer">
+          
+          <button 
+            *ngIf="isAdmin"
+            class="btn btn-edit" 
+            (click)="onEdit(customer)" 
+            aria-label="Edit customer"
+          >
             Edit
           </button>
-          </div>
-           <div *ngIf="checkRole()">
-          <button class="btn btn-delete" (click)="onDelete(customer)" aria-label="Delete customer">
+          
+          <button 
+            *ngIf="isAdmin"
+            class="btn btn-delete" 
+            (click)="onDelete(customer)" 
+            aria-label="Delete customer"
+          >
             Delete
           </button>
-          </div>
         </div>
       </div>
     </article>
@@ -152,7 +141,7 @@
   <!-- Pagination -->
   <nav
     class="pagination-nav"
-    *ngIf="showPagination && !error"
+    *ngIf="showPagination"
     aria-label="Customer list pagination"
   >
     <div class="pagination-info" role="status" aria-live="polite">
@@ -165,7 +154,7 @@
       <button
         class="btn btn-page"
         (click)="previousPage()"
-        [disabled]="!pagination.hasPrevious || loading"
+        [disabled]="!pagination.hasPrevious"
         aria-label="Go to previous page"
       >
         <span>Previous</span>
@@ -178,7 +167,7 @@
           [class.active]="page === pagination.currentPage"
           (click)="goToPage(page)"
           [attr.aria-current]="page === pagination.currentPage ? 'page' : null"
-          [disabled]="page === pagination.currentPage || loading"
+          [disabled]="page === pagination.currentPage"
         >
           {{ page }}
         </button>
@@ -187,7 +176,7 @@
       <button
         class="btn btn-page"
         (click)="nextPage()"
-        [disabled]="!pagination.hasNext || loading"
+        [disabled]="!pagination.hasNext"
         aria-label="Go to next page"
       >
         <span>Next</span>
@@ -206,14 +195,8 @@
 >
   <div class="modal-overlay" (click)="closeModal()" aria-hidden="true"></div>
   <div class="modal-dialog" role="document">
-    <!-- Modal Loading State -->
-    <div class="modal-loading" *ngIf="loadingModal">
-      <div class="spinner" aria-hidden="true"></div>
-      <p class="loading-text">Loading customer details...</p>
-    </div>
-
     <!-- Modal Content -->
-    <div *ngIf="!loadingModal && selectedCustomer">
+    <div *ngIf="selectedCustomer">
       <div class="modal-header">
         <h2 id="modal-title" class="modal-title">{{ selectedCustomer.fullName }}</h2>
         <button class="btn-close" (click)="closeModal()" aria-label="Close customer details modal">
@@ -260,7 +243,7 @@
           </div>
         </dl>
 
-        <div class="modal-actions">
+        <div class="modal-actions" *ngIf="isAdmin">
           <button class="btn btn-edit" (click)="onEdit(selectedCustomer)">Edit</button>
           <button class="btn btn-delete" (click)="onDelete(selectedCustomer)">Delete</button>
         </div>
