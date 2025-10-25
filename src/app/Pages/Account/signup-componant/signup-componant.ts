@@ -51,33 +51,27 @@ export class SignupComponent implements OnInit, OnDestroy {
     return !!(control?.hasError(errorType) && control?.touched);
   }
 
-  async onSubmit(): Promise<void> {
-    if (this.signupForm.invalid) {
-      this.signupForm.markAllAsTouched();
-      return;
-    }
+   onSubmit() {
+    if (this.signupForm.invalid) return;
 
     this.isSubmitting = true;
-    this.errorMessage = null;
-    this.successMessage = null;
+    this.errorMessage = '';
+    this.successMessage = '';
 
-    const formValue = this.signupForm.value;
+    this.authService.signup(this.signupForm.value).subscribe({
+      next: (res) => {
+        this.isSubmitting = false;
+        this.successMessage = 'Signup successful! Redirecting to login...';
 
-    // ✅ Only send what the backend expects
-    const payload = {
-      username: formValue.username,
-      password: formValue.password,
-    };
-
-    try {
-      const result = await this.authService.signup(payload).toPromise();
-      this.successMessage = 'Account created successfully!';
-      this.signupForm.reset();
-      setTimeout(() => this.router.navigate(['/login']), 2000);
-    } catch (error: any) {
-      this.errorMessage = error?.error || 'Signup failed. Please try again.';
-    } finally {
-      this.isSubmitting = false;
-    }
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 2000);
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        this.errorMessage = err?.error?.message || 'Signup failed. Try again.';
+      }
+    });
   }
 }
