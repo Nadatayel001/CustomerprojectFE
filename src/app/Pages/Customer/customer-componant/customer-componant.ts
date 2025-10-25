@@ -194,22 +194,33 @@ export class CustomerComponent implements OnInit, OnDestroy {
   }
 
   private async createCustomer(payload: any): Promise<void> {
+  try {
     const result = await this.customerService.createCustomer(payload);
     if (result) {
       this.showSuccess('Customer created successfully!');
       setTimeout(() => this.router.navigate(['/Customer-list']), 1500);
     }
+  } catch (error: any) {
+     alert(error?.message || 'An error occurred');
+    const errMsg = error?.error?.message || 'Failed to create customer.';
+    this.showError(errMsg);
   }
+}
 
-  private async updateCustomer(payload: any): Promise<void> {
-    if (!this.customerId) return;
+private async updateCustomer(payload: any): Promise<void> {
+  if (!this.customerId) return;
+  try {
     const updatePayload = { ...payload, id: this.customerId };
     const result = await this.customerService.updateCustomer(this.customerId, updatePayload);
     if (result) {
       this.showSuccess('Customer updated successfully!');
-      setTimeout(() => this.router.navigate(['/Customer-list']), 1500);
+      setTimeout(() => this.router.navigate(['/ustomer-list']), 1500);
     }
+  } catch (error: any) {
+    const errMsg = error?.error?.message || 'Failed to update customer.';
+    this.showError(errMsg);
   }
+}
 
   onCancel(): void {
     this.router.navigate(['/customer-list']);
