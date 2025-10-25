@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { SignupModel, SignupResult } from '../proxy/auth/signup.model';
 
 @Injectable({
   providedIn: 'root',
@@ -22,6 +23,15 @@ export class AuthService {
       })
     );
   }
+signup(model: { username: string; password: string }): Observable<any> {
+return this.http.post<any>(`${this.baseUrl}/users`, model).pipe(    tap((response: any) => {
+      if (response?.id) {
+        console.log('User created with ID:', response.id);
+      }
+    })
+  );
+}
+
 
   logout(): void {
     localStorage.removeItem('token');
